@@ -9,13 +9,14 @@ TOKEN = os.getenv('TOKEN')
 GUILD_ID = os.getenv('GUILD_ID')
 URL = os.getenv('URL')
 MODEL = os.getenv('MODEL')
+PROMPT = os.getenv('PROMPT')
 
 def summarize_conversation(sorted_messages):
     conversation = ""
     for msg in sorted_messages:
         conversation += f"{msg['author']}: {msg['message']}\n"
     
-    prompt_text = f"Please summarize the following conversation. Please keep it as short as possible without missing any key arguments or details.\n\n{conversation}"
+    prompt_text = f"{PROMPT}\n\n{conversation}"
     
     payload = {
         "model": MODEL,

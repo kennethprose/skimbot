@@ -25,6 +25,7 @@ The following environment variables are required for this bot to function proper
  - `GUILD_ID`: The ID of the
  - `URL`: The URL of the Ollama instance.
  - `MODEL`: The model to use for summarization.
+ - `PROMPT`: The prompt to tell the LLM how you want the conversation to be summarized.
 
  \* You can find the Guild ID by logging into discord on the web, opening the desired server, and copying the last number in the URL.
 
@@ -42,6 +43,7 @@ docker run -d \
   --env GUILD_ID=your-guild-id \
   --env URL=http://your-ai-api-endpoint \
   --env MODEL=your-model \
+  --env PROMPT="Please summarize the following conversation. Please keep it as short as possible without missing any key arguments or details." \
   roseatoni/skimbot:latest
 ```
 
@@ -55,6 +57,7 @@ services:
             - GUILD_ID=your-guild-id
             - URL=http://your-ai-api-endpoint
             - MODEL=your-model
+            - PROMPT="Please summarize the following conversation. Please keep it as short as possible without missing any key arguments or details."
         image: roseatoni/skimbot:latest
 ```
 
@@ -82,6 +85,7 @@ services:
       GUILD_ID=your-guild-id
       URL=http://localhost:11434/api/generate  # Replace with your Ollama endpoint
       MODEL=gemma3:12b                         # Replace with your chosen model
+      PROMPT=Please summarize the following conversation. Please keep it as short as possible without missing any key arguments or details. 
       ```
 
 4. Run the bot
