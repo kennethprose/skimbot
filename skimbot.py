@@ -1,3 +1,4 @@
+import json
 import os
 import discord
 import requests
@@ -20,15 +21,18 @@ if NUM_CTX:
         raise ValueError('NUM_CTX must be a positive integer when supplied.') from None
 
 def summarize_conversation(sorted_messages):
-    conversation = ""
+    message_ids = {msg['id'] for msg in sorted_messages}
+    conversation = {"order": "oldest_first", "messages": []}
     for msg in sorted_messages:
-        conversation += f"{msg['author']}: {msg['message']}\n"
-    
-    prompt_text = f"{PROMPT}\n\n{conversation}"
+        entry = dict(msg)
+        if entry['reply_to'] is not None:
+            entry['reply_to_included'] = entry['reply_to'] in message_ids
+        conversation['messages'].append(entry)
     
     payload = {
         "model": MODEL,
-        "prompt": prompt_text,
+        "system": PROMPT,
+        "prompt": json.dumps(conversation, ensure_ascii=False, indent=2),
         "stream": False
     }
     if NUM_CTX:
@@ -64,10 +68,18 @@ async def _skim(interaction: discord.Interaction, msg_count: int) -> None:
         if message.author.bot:
             continue
         message_details = {
+            "id": str(message.id),
             "author": message.author.name,
-            "message": message.content,
-            "timestamp": message.created_at.timestamp()
+            "content": message.content,
+            "timestamp": message.created_at.isoformat(),
+            "reply_to": None
         }
+        if (
+            message.type == discord.MessageType.reply
+            and message.reference is not None
+            and message.reference.message_id is not None
+        ):
+            message_details['reply_to'] = str(message.reference.message_id)
         messages.append(message_details)
     sorted_messages = sorted(messages, key=lambda x: x['timestamp'], reverse=False)
 

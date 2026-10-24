@@ -25,7 +25,7 @@ The following environment variables are required for this bot to function proper
  - `GUILD_ID`: The ID of the
  - `URL`: The URL of the Ollama instance.
  - `MODEL`: The model to use for summarization.
- - `PROMPT`: The prompt to tell the LLM how you want the conversation to be summarized.
+ - `PROMPT`: Instructions for how the LLM should summarize the conversation, sent in Ollama's `system` field. The conversation itself is sent separately in `prompt`.
 
  \* You can find the Guild ID by logging into discord on the web, opening the desired server, and copying the last number in the URL.
 
