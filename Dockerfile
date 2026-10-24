@@ -1,4 +1,4 @@
-FROM python:3.12-alpine
+FROM python:3.14-alpine
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -9,7 +9,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --no-compile --no-cache-dir -r requirements.txt
+RUN apk add --no-cache --virtual .build-deps build-base \
+    && pip install --no-compile --no-cache-dir -r requirements.txt \
+    && apk del .build-deps
 
 COPY skimbot.py .
 
