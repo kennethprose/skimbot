@@ -29,6 +29,12 @@ The following environment variables are required for this bot to function proper
 
  \* You can find the Guild ID by logging into discord on the web, opening the desired server, and copying the last number in the URL.
 
+Optional environment variables:
+
+ - `NUM_CTX`: A positive integer specifying the Ollama context window size in tokens (for example, `32768`). When unset or empty, the bot omits `options.num_ctx` from the request and uses Ollama's default. Invalid values cause a startup error.
+
+For native setup, add `NUM_CTX=32768` to `.env`. For Docker, add `--env NUM_CTX=32768` to the run command or `- NUM_CTX=32768` to the Compose environment list.
+
 ## Docker Setup
 
 A dockerized version of this app is available on [Docker Hub](https://hub.docker.com/r/roseatoni/skimbot).

@@ -10,6 +10,14 @@ GUILD_ID = os.getenv('GUILD_ID')
 URL = os.getenv('URL')
 MODEL = os.getenv('MODEL')
 PROMPT = os.getenv('PROMPT')
+NUM_CTX = os.getenv('NUM_CTX', '').strip()
+if NUM_CTX:
+    try:
+        NUM_CTX = int(NUM_CTX)
+        if NUM_CTX <= 0:
+            raise ValueError
+    except ValueError:
+        raise ValueError('NUM_CTX must be a positive integer when supplied.') from None
 
 def summarize_conversation(sorted_messages):
     conversation = ""
@@ -23,6 +31,8 @@ def summarize_conversation(sorted_messages):
         "prompt": prompt_text,
         "stream": False
     }
+    if NUM_CTX:
+        payload["options"] = {"num_ctx": NUM_CTX}
     
     try:
         response = requests.post(URL, json=payload)
