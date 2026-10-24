@@ -3,6 +3,7 @@ import os
 import discord
 import requests
 from dotenv import load_dotenv
+from message_utils import split_summary
 
 load_dotenv()
 
@@ -86,6 +87,11 @@ async def _skim(interaction: discord.Interaction, msg_count: int) -> None:
     await interaction.edit_original_response(content="Summarizing...")
 
     summary = summarize_conversation(sorted_messages)
-    await interaction.edit_original_response(content=str(summary))
+    chunks = split_summary(str(summary))
+    if not chunks:
+        chunks = ["Ollama returned an empty summary."]
+    await interaction.edit_original_response(content=chunks[0])
+    for chunk in chunks[1:]:
+        await interaction.followup.send(content=chunk)
 
 client.run(TOKEN)
