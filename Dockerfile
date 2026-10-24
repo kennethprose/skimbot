@@ -13,6 +13,6 @@ RUN apk add --no-cache --virtual .build-deps build-base \
     && pip install --no-compile --no-cache-dir -r requirements.txt \
     && apk del .build-deps
 
-COPY skimbot.py message_utils.py ./
+COPY skimbot.py message_utils.py skim_utils.py ./
 
 CMD ["python", "skimbot.py"]

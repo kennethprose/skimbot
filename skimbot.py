@@ -4,6 +4,7 @@ import discord
 import requests
 from dotenv import load_dotenv
 from message_utils import split_summary
+from skim_utils import collect_messages, resolve_selection
 
 load_dotenv()
 
@@ -60,14 +61,35 @@ class SlashClient(discord.Client):
 
 client = SlashClient()
 
-@client.tree.command(name="skim", description="Summarize the last few messages in a channel")
-async def _skim(interaction: discord.Interaction, msg_count: int) -> None:
+async def skim_messages(interaction: discord.Interaction, *, count=None, after=None) -> None:
+    if interaction.channel is None or not hasattr(interaction.channel, 'history'):
+        await interaction.response.send_message(
+            "Use this command in a channel with message history.", ephemeral=True
+        )
+        return
     await interaction.response.send_message("Fetching messages...")
 
+    try:
+        history = await collect_messages(
+            interaction.channel, before=interaction.created_at, after=after, count=count
+        )
+    except discord.Forbidden:
+        await interaction.edit_original_response(
+            content="I don't have permission to read this channel's message history."
+        )
+        return
+    except discord.HTTPException:
+        await interaction.edit_original_response(
+            content="Discord couldn't return the message history. Please try again."
+        )
+        return
+
+    if not history:
+        await interaction.edit_original_response(content="No messages found for that selection.")
+        return
+
     messages = []
-    async for message in interaction.channel.history(limit=msg_count+1):
-        if message.author.bot:
-            continue
+    for message in history:
         message_details = {
             "id": str(message.id),
             "author": message.author.name,
@@ -82,11 +104,9 @@ async def _skim(interaction: discord.Interaction, msg_count: int) -> None:
         ):
             message_details['reply_to'] = str(message.reference.message_id)
         messages.append(message_details)
-    sorted_messages = sorted(messages, key=lambda x: x['timestamp'], reverse=False)
+    await interaction.edit_original_response(content=f"Summarizing {len(messages)} messages...")
 
-    await interaction.edit_original_response(content="Summarizing...")
-
-    summary = summarize_conversation(sorted_messages)
+    summary = summarize_conversation(messages)
     chunks = split_summary(str(summary))
     if not chunks:
         chunks = ["Ollama returned an empty summary."]
@@ -94,4 +114,26 @@ async def _skim(interaction: discord.Interaction, msg_count: int) -> None:
     for chunk in chunks[1:]:
         await interaction.followup.send(content=chunk)
 
-client.run(TOKEN)
+@client.tree.command(name="skim", description="Summarize messages using exactly one selection option")
+@discord.app_commands.describe(
+    duration="Time to look back, such as 30m, 4h, or 2d",
+    count="Number of non-bot messages to summarize (at least 1)",
+    since="ISO timestamp with timezone, e.g. 2026-10-24T09:00:00-04:00",
+)
+async def skim(
+    interaction: discord.Interaction,
+    duration: str | None = None,
+    count: int | None = None,
+    since: str | None = None,
+) -> None:
+    try:
+        selection = resolve_selection(
+            interaction.created_at, duration=duration, count=count, since=since
+        )
+    except ValueError as error:
+        await interaction.response.send_message(str(error), ephemeral=True)
+        return
+    await skim_messages(interaction, **selection)
+
+if __name__ == '__main__':
+    client.run(TOKEN)

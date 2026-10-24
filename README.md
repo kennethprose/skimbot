@@ -2,7 +2,19 @@
 
 ## Overview
 
-This bot, named SkimBot, uses [Ollama](https://ollama.com/) to summarize recent messages in a Discord channel. It fetches a specified number of messages and sends back a summarized version of the conversation.
+This bot, named SkimBot, uses [Ollama](https://ollama.com/) to summarize messages in a Discord channel. Select a message count, a recent duration, or a specific start time.
+
+## Commands
+
+| Option | Example | Selection |
+| --- | --- | --- |
+| `count` | `/skim count:20` | The last 20 non-bot messages |
+| `duration` | `/skim duration:4h` | All non-bot messages from the last four hours |
+| `since` | `/skim since:2026-10-24T09:00:00-04:00` | All non-bot messages after a specific time |
+
+`duration` accepts a positive whole number followed by `m` (minutes), `h` (hours), or `d` (24-hour days), such as `30m`, `4h`, or `2d`. Units are case-insensitive.
+
+`since` accepts an ISO 8601 timestamp with an explicit timezone: use `Z` for UTC (for example, `2026-10-24T13:00:00Z`) or an offset such as `-04:00`. Timestamps without a timezone, invalid dates, and start times at or after the command invocation are rejected.
 
 ## Bot Setup
 
@@ -96,4 +108,12 @@ services:
 
 4. Run the bot
     - Once the `.env` file is configured, run the `skimbot.py` Python file.
-    - In Discord, use the `/skim` slash command followed by the number of messages you want to summarize (e.g., `/skim 20`).
+    - In Discord, use `/skim` with exactly one of `count`, `duration`, or `since` as shown above.
+
+## Tests
+
+Run the time parsing and message selection tests without Discord or Ollama access:
+
+```bash
+python -m unittest discover -s tests -v
+```
