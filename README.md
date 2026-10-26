@@ -44,8 +44,9 @@ The following environment variables are required for this bot to function proper
 Optional environment variables:
 
  - `THINK`: Optional `true` or `false` (case-insensitive), applied to both image analysis and final summaries through Ollama's top-level `think` field. Set `THINK=false` to request disabled thinking. When unset or blank, the field is omitted and the model's default applies.
- - `NUM_CTX`: A positive integer specifying the Ollama context window size in tokens (for example, `32768`). When unset or empty, the bot omits `options.num_ctx` from the request and uses Ollama's default. Invalid values cause a startup error.
- - `VISION_MODEL`: Model used for image analysis. Defaults to `MODEL`. It must support vision. When supplied, `NUM_CTX` also applies to image-analysis requests. I can personally recommend minicpm-v4.6 for this.
+ - `NUM_CTX`: A positive integer specifying the final summary context window size in tokens (for example, `32768`). Also used for image analysis unless `VISION_NUM_CTX` overrides it. When unset or empty, summary requests omit `options.num_ctx` and use Ollama's default. Invalid values cause a startup error.
+ - `VISION_NUM_CTX`: Optional positive integer specifying the image-analysis context window size in tokens (for example, `8192`). When unset or blank, falls back to `NUM_CTX`. If neither is supplied, image-analysis requests omit `options.num_ctx` and use Ollama's default. Invalid values cause a startup error.
+ - `VISION_MODEL`: Model used for image analysis. Defaults to `MODEL`. It must support vision. I can personally recommend minicpm-v4.6 for this.
  - `PROCESS_IMAGES`: `true` (default) or `false`. Set to `false` to skip image downloads and analysis while retaining skipped-image markers.
  - `MAX_IMAGES`: Maximum image-analysis attempts per summary; defaults to `10`.
  - `MAX_IMAGE_BYTES`: Maximum downloaded bytes per image; defaults to `10485760` (10 MiB).

@@ -29,6 +29,17 @@ if NUM_CTX:
     except ValueError:
         raise ValueError('NUM_CTX must be a positive integer when supplied.') from None
 
+VISION_NUM_CTX = os.getenv('VISION_NUM_CTX', '').strip()
+if VISION_NUM_CTX:
+    try:
+        VISION_NUM_CTX = int(VISION_NUM_CTX)
+        if VISION_NUM_CTX <= 0:
+            raise ValueError
+    except ValueError:
+        raise ValueError('VISION_NUM_CTX must be a positive integer when supplied.') from None
+else:
+    VISION_NUM_CTX = NUM_CTX or None
+
 IMAGE_SETTINGS = ImageSettings.from_env(os.environ, MODEL)
 
 
@@ -77,7 +88,7 @@ class SlashClient(discord.Client):
         self.http_session = aiohttp.ClientSession()
         self.ollama = OllamaClient(self.http_session, URL)
         self.image_analyzer = ImageAnalyzer(
-            self.ollama, IMAGE_SETTINGS, num_ctx=NUM_CTX or None, think=THINK
+            self.ollama, IMAGE_SETTINGS, num_ctx=VISION_NUM_CTX, think=THINK
         )
         self.tree.copy_global_to(guild=discord.Object(id=GUILD_ID))
         await self.tree.sync()
