@@ -2,7 +2,7 @@
 
 ## Overview
 
-This bot, named SkimBot, uses [Ollama](https://ollama.com/) to summarize messages in a Discord channel. Select a message count, a recent duration, or a specific start time.
+This bot, named SkimBot, uses [Ollama](https://ollama.com/) to summarize messages and images in a Discord channel. Select a message count, a recent duration, or a specific start time.
 
 ## Commands
 
@@ -27,7 +27,7 @@ This bot, named SkimBot, uses [Ollama](https://ollama.com/) to summarize message
      - Bot Permissions
        - Send messages
        - Read message history
-   - On the Bot tab, copy the bot token.
+   - On the Bot tab, copy the bot token and enable **Message Content Intent** under Privileged Gateway Intents. SkimBot requests this intent to read ordinary message text and attachments; applications subject to Discord's intent approval requirements also need approval.
 
 ## Enviorment Variables
 
@@ -44,8 +44,12 @@ The following environment variables are required for this bot to function proper
 Optional environment variables:
 
  - `NUM_CTX`: A positive integer specifying the Ollama context window size in tokens (for example, `32768`). When unset or empty, the bot omits `options.num_ctx` from the request and uses Ollama's default. Invalid values cause a startup error.
-
-For native setup, add `NUM_CTX=32768` to `.env`. For Docker, add `--env NUM_CTX=32768` to the run command or `- NUM_CTX=32768` to the Compose environment list.
+ - `VISION_MODEL`: Model used for image analysis. Defaults to `MODEL`. It must support vision. When supplied, `NUM_CTX` also applies to image-analysis requests. I can personally recommend minicpm-v4.6 for this.
+ - `PROCESS_IMAGES`: `true` (default) or `false`. Set to `false` to skip image downloads and analysis while retaining skipped-image markers.
+ - `MAX_IMAGES`: Maximum image-analysis attempts per summary; defaults to `10`.
+ - `MAX_IMAGE_BYTES`: Maximum downloaded bytes per image; defaults to `10485760` (10 MiB).
+ - `IMAGE_TIMEOUT`: Maximum seconds for each image, including download and queue time; defaults to `120`.
+ - `IMAGE_TIME_BUDGET`: Total seconds allowed for the image-analysis stage of each summary; defaults to `300`.
 
 ## Docker Setup
 
@@ -84,13 +88,13 @@ services:
 1. Install Requirements
     - Python 3.x
     - [discord.py](https://discordpy.readthedocs.io/en/stable/) library
-    - requests library
+    - aiohttp library
     - python-dotenv library
 
     You can install these libraries using pip:
 
     ```bash
-    pip install discord.py requests python-dotenv
+    pip install -r requirements.txt
     ```
 2. Download this repo
 
@@ -109,11 +113,3 @@ services:
 4. Run the bot
     - Once the `.env` file is configured, run the `skimbot.py` Python file.
     - In Discord, use `/skim` with exactly one of `count`, `duration`, or `since` as shown above.
-
-## Tests
-
-Run the time parsing and message selection tests without Discord or Ollama access:
-
-```bash
-python -m unittest discover -s tests -v
-```

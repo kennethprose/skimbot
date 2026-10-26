@@ -1,9 +1,11 @@
 import json
 import os
+import aiohttp
 import discord
-import requests
 from dotenv import load_dotenv
+from image_utils import IMAGE_SUMMARY_INSTRUCTIONS, ImageAnalyzer, ImageSettings, is_image
 from message_utils import split_summary
+from ollama_client import OllamaClient, OllamaError
 from skim_utils import collect_messages, resolve_selection
 
 load_dotenv()
@@ -22,7 +24,10 @@ if NUM_CTX:
     except ValueError:
         raise ValueError('NUM_CTX must be a positive integer when supplied.') from None
 
-def summarize_conversation(sorted_messages):
+IMAGE_SETTINGS = ImageSettings.from_env(os.environ, MODEL)
+
+
+async def summarize_conversation(sorted_messages, ollama):
     message_ids = {msg['id'] for msg in sorted_messages}
     conversation = {"order": "oldest_first", "messages": []}
     for msg in sorted_messages:
@@ -37,27 +42,43 @@ def summarize_conversation(sorted_messages):
         "prompt": json.dumps(conversation, ensure_ascii=False, indent=2),
         "stream": False
     }
+    if any(message.get('images') for message in sorted_messages):
+        payload['system'] = f"{PROMPT or ''}\n\n{IMAGE_SUMMARY_INSTRUCTIONS}"
     if NUM_CTX:
         payload["options"] = {"num_ctx": NUM_CTX}
     
     try:
-        response = requests.post(URL, json=payload)
-        response.raise_for_status()
-        
-        summary = response.json()['response']
-    except Exception as e:
-        summary = f"Error contacting Ollama: {str(e)}"
+        summary = await ollama.generate(payload)
+    except TimeoutError:
+        summary = "Ollama timed out while generating the summary. Try a smaller selection."
+    except OllamaError as error:
+        summary = f"Error contacting Ollama: {error}"
     
     return summary
 
 class SlashClient(discord.Client):
     def __init__(self) -> None:
-        super().__init__(intents=discord.Intents.default())
+        intents = discord.Intents.default()
+        intents.message_content = True
+        super().__init__(intents=intents)
         self.tree = discord.app_commands.CommandTree(self)
+        self.http_session = None
+        self.ollama = None
+        self.image_analyzer = None
 
     async def setup_hook(self) -> None:
+        self.http_session = aiohttp.ClientSession()
+        self.ollama = OllamaClient(self.http_session, URL)
+        self.image_analyzer = ImageAnalyzer(self.ollama, IMAGE_SETTINGS, num_ctx=NUM_CTX or None)
         self.tree.copy_global_to(guild=discord.Object(id=GUILD_ID))
         await self.tree.sync()
+
+    async def close(self) -> None:
+        try:
+            await super().close()
+        finally:
+            if self.http_session is not None:
+                await self.http_session.close()
 
 client = SlashClient()
 
@@ -104,10 +125,17 @@ async def skim_messages(interaction: discord.Interaction, *, count=None, after=N
         ):
             message_details['reply_to'] = str(message.reference.message_id)
         messages.append(message_details)
+
+    image_stats = {'analyzed': 0, 'failed': 0, 'skipped': 0}
+    if any(is_image(attachment) for message in history for attachment in message.attachments):
+        await interaction.edit_original_response(content="Analyzing image attachments...")
+        image_stats = await client.image_analyzer.enrich(history, messages)
     await interaction.edit_original_response(content=f"Summarizing {len(messages)} messages...")
 
-    summary = summarize_conversation(messages)
-    chunks = split_summary(str(summary))
+    summary = await summarize_conversation(messages, client.ollama)
+    if not summary.strip():
+        summary = "Ollama returned an empty summary."
+    chunks = split_summary(summary)
     if not chunks:
         chunks = ["Ollama returned an empty summary."]
     await interaction.edit_original_response(content=chunks[0])
