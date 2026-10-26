@@ -43,6 +43,7 @@ The following environment variables are required for this bot to function proper
 
 Optional environment variables:
 
+ - `THINK`: Optional `true` or `false` (case-insensitive), applied to both image analysis and final summaries through Ollama's top-level `think` field. Set `THINK=false` to request disabled thinking. When unset or blank, the field is omitted and the model's default applies.
  - `NUM_CTX`: A positive integer specifying the Ollama context window size in tokens (for example, `32768`). When unset or empty, the bot omits `options.num_ctx` from the request and uses Ollama's default. Invalid values cause a startup error.
  - `VISION_MODEL`: Model used for image analysis. Defaults to `MODEL`. It must support vision. When supplied, `NUM_CTX` also applies to image-analysis requests. I can personally recommend minicpm-v4.6 for this.
  - `PROCESS_IMAGES`: `true` (default) or `false`. Set to `false` to skip image downloads and analysis while retaining skipped-image markers.

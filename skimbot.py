@@ -15,6 +15,10 @@ GUILD_ID = os.getenv('GUILD_ID')
 URL = os.getenv('URL')
 MODEL = os.getenv('MODEL')
 PROMPT = os.getenv('PROMPT')
+THINK = os.getenv('THINK', '').strip().lower()
+if THINK not in ('', 'true', 'false'):
+    raise ValueError('THINK must be true or false when supplied.')
+THINK = {'': None, 'true': True, 'false': False}[THINK]
 NUM_CTX = os.getenv('NUM_CTX', '').strip()
 if NUM_CTX:
     try:
@@ -46,6 +50,8 @@ async def summarize_conversation(sorted_messages, ollama):
         payload['system'] = f"{PROMPT or ''}\n\n{IMAGE_SUMMARY_INSTRUCTIONS}"
     if NUM_CTX:
         payload["options"] = {"num_ctx": NUM_CTX}
+    if THINK is not None:
+        payload["think"] = THINK
     
     try:
         summary = await ollama.generate(payload)
@@ -69,7 +75,9 @@ class SlashClient(discord.Client):
     async def setup_hook(self) -> None:
         self.http_session = aiohttp.ClientSession()
         self.ollama = OllamaClient(self.http_session, URL)
-        self.image_analyzer = ImageAnalyzer(self.ollama, IMAGE_SETTINGS, num_ctx=NUM_CTX or None)
+        self.image_analyzer = ImageAnalyzer(
+            self.ollama, IMAGE_SETTINGS, num_ctx=NUM_CTX or None, think=THINK
+        )
         self.tree.copy_global_to(guild=discord.Object(id=GUILD_ID))
         await self.tree.sync()
 

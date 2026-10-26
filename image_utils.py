@@ -127,10 +127,11 @@ def validate_analysis(text):
 
 
 class ImageAnalyzer:
-    def __init__(self, ollama, settings, *, num_ctx=None, cache_size=128):
+    def __init__(self, ollama, settings, *, num_ctx=None, think=None, cache_size=128):
         self.ollama = ollama
         self.settings = settings
         self.num_ctx = num_ctx
+        self.think = think
         self.cache_size = cache_size
         self.cache = OrderedDict()
         self.lock = asyncio.Lock()
@@ -152,6 +153,8 @@ class ImageAnalyzer:
         }
         if self.num_ctx:
             payload['options']['num_ctx'] = self.num_ctx
+        if self.think is not None:
+            payload['think'] = self.think
         identity = {**payload, 'image_sha256': hashlib.sha256(data).hexdigest()}
         key = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
         # Cache only observations, never image bytes. Serialize inference across /skim calls.
