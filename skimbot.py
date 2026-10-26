@@ -1,5 +1,6 @@
 import json
 import os
+import time
 import aiohttp
 import discord
 from dotenv import load_dotenv
@@ -90,7 +91,9 @@ class SlashClient(discord.Client):
 
 client = SlashClient()
 
-async def skim_messages(interaction: discord.Interaction, *, count=None, after=None) -> None:
+async def skim_messages(interaction: discord.Interaction, *, count=None, after=None, started_at=None) -> None:
+    if started_at is None:
+        started_at = time.perf_counter()
     if interaction.channel is None or not hasattr(interaction.channel, 'history'):
         await interaction.response.send_message(
             "Use this command in a channel with message history.", ephemeral=True
@@ -143,6 +146,8 @@ async def skim_messages(interaction: discord.Interaction, *, count=None, after=N
     summary = await summarize_conversation(messages, client.ollama)
     if not summary.strip():
         summary = "Ollama returned an empty summary."
+    elapsed = time.perf_counter() - started_at
+    summary += f"\n\n*Processing time: {elapsed:.2f}s*"
     chunks = split_summary(summary)
     if not chunks:
         chunks = ["Ollama returned an empty summary."]
@@ -162,6 +167,7 @@ async def skim(
     count: int | None = None,
     since: str | None = None,
 ) -> None:
+    started_at = time.perf_counter()
     try:
         selection = resolve_selection(
             interaction.created_at, duration=duration, count=count, since=since
@@ -169,7 +175,7 @@ async def skim(
     except ValueError as error:
         await interaction.response.send_message(str(error), ephemeral=True)
         return
-    await skim_messages(interaction, **selection)
+    await skim_messages(interaction, started_at=started_at, **selection)
 
 if __name__ == '__main__':
     client.run(TOKEN)
